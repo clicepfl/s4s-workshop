@@ -11,70 +11,49 @@ type ScoresResponse = {
   scores: Record<string, PlayerStats>;
 };
 
+// Example JSON for testing
+const exampleData: ScoresResponse = {
+  scores: {
+    user1: { elo: 1037.4, wins: 15, losses: 13, draws: 5 },
+    user2: { elo: 1005.3, wins: 13, losses: 11, draws: 9 },
+    user3: { elo: 1100.1, wins: 20, losses: 5, draws: 3 },
+    user4: { elo: 950.7, wins: 10, losses: 12, draws: 4 },
+  },
+};
+
 export default function LeaderboardPage() {
   const [scores, setScores] = useState<Record<string, PlayerStats> | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const res = await fetch("/tournament", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ /* add request body if needed */ }),
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch leaderboard");
-        }
-
-        const data: ScoresResponse = await res.json();
-        setScores(data.scores);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Unknown error");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
+    // Instead of fetching, just set the example JSON
+    setScores(exampleData.scores);
   }, []);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Tournament Leaderboard</h1>
-
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div className="leaderboard-container">
+      <h1 className="leaderboard-title">Tournament Leaderboard</h1>
 
       {scores && (
-        <table className="mt-6 border-collapse border border-gray-300">
+        <table className="leaderboard-table">
           <thead>
-            <tr>
-              <th className="border px-4 py-2">User</th>
-              <th className="border px-4 py-2">ELO</th>
-              <th className="border px-4 py-2">Wins</th>
-              <th className="border px-4 py-2">Losses</th>
-              <th className="border px-4 py-2">Draws</th>
+            <tr className="leaderboard-header-row">
+              <th className="leaderboard-header-cell">User</th>
+              <th className="leaderboard-header-cell">ELO</th>
+              <th className="leaderboard-header-cell">Wins</th>
+              <th className="leaderboard-header-cell">Losses</th>
+              <th className="leaderboard-header-cell">Draws</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(scores)
-              .sort(([, a], [, b]) => b.elo - a.elo) // sort by ELO desc
+              .sort(([, a], [, b]) => b.elo - a.elo)
               .map(([username, stats]) => (
-                <tr key={username}>
-                  <td className="border px-4 py-2">{username}</td>
-                  <td className="border px-4 py-2">{stats.elo.toFixed(1)}</td>
-                  <td className="border px-4 py-2">{stats.wins}</td>
-                  <td className="border px-4 py-2">{stats.losses}</td>
-                  <td className="border px-4 py-2">{stats.draws}</td>
+                <tr key={username} className="leaderboard-row">
+                  <td className="leaderboard-cell">{username}</td>
+                  <td className="leaderboard-cell">{stats.elo.toFixed(1)}</td>
+                  <td className="leaderboard-cell">{stats.wins}</td>
+                  <td className="leaderboard-cell">{stats.losses}</td>
+                  <td className="leaderboard-cell">{stats.draws}</td>
                 </tr>
               ))}
           </tbody>
