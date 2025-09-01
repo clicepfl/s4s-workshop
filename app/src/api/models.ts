@@ -4,6 +4,7 @@ export interface GameState {
 }
 export interface TurnStatus {
   game: GameState;
+  available_moves: [MoveSequence, [number, number][]][];
   ai_output: string; // Everything printed by the AI on stderr since the start/last move.
 }
 

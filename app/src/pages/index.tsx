@@ -4,14 +4,14 @@ import Editor from "@monaco-editor/react";
 import { useEffect, useState } from "react";
 import Board from "@/components/Board";
 import {
-  AIError,
-  AIErrorType,
-  Board as BoardState,
-  emptyBoard,
-  initialBoards,
-  Player,
-  SubmissionLanguage,
-  TurnStatus,
+    AIError,
+    AIErrorType,
+    Board as BoardState,
+    emptyBoard,
+    initialBoards, MoveSequence,
+    Player,
+    SubmissionLanguage,
+    TurnStatus,
 } from "../api/models";
 import {
   createGame,
@@ -41,6 +41,7 @@ export default function Home({ username }: { username: string }) {
   const [player, setPlayer] = useState(Player.White);
   const [currentTurn, setCurrentTurn] = useState<Player | null>(null);
   const [board, setBoard] = useState(initialBoards[player]);
+  const [availableSequences, setAvailableSequences] = useState<MoveSequence[]>([]);
 
   const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 
@@ -121,6 +122,7 @@ export default function Home({ username }: { username: string }) {
       setGameOngoing(false);
     } else {
       setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
+      setAvailableSequences(turnStatus.available_moves.map((x) => x[0]));
       setCurrentTurn(turnStatus.game.current_player);
     }
 
@@ -278,6 +280,7 @@ export default function Home({ username }: { username: string }) {
                   board={board}
                   setBoard={setBoard}
                   updateGame={updateGame}
+                  availableSequences={availableSequences}
                 />
               </div>
               <div className="game-info">

@@ -36,6 +36,7 @@ type BoardProps = {
     turnStatus: TurnStatus | AIError,
     initialConsoleOutput?: ConsoleMessage[]
   ) => void;
+  availableSequences: MoveSequence[]
 };
 
 export default function Board({
@@ -47,6 +48,7 @@ export default function Board({
   board,
   setBoard,
   updateGame,
+  availableSequences,
 }: BoardProps) {
   const [currentMoveSequence, setCurrentMoveSequence] = useState<MoveSequence>(
     []
@@ -71,7 +73,7 @@ export default function Board({
     if (clickedPiece != null && clickedPiece.player == player) {
       // select piece
       setSelectedPiece({ x, y });
-      setPossibleMoves(calculatePossibleMoves(board, clickedPiece, x, y));
+      setPossibleMoves(calculatePossibleMoves(board, availableSequences, currentMoveSequence, clickedPiece, x, y));
     } else if (selectedPiece != null) {
       const piece = board[selectedPiece.y][selectedPiece.x];
 
@@ -100,7 +102,7 @@ export default function Board({
           // check if the move sequence is finished
           if (playedMove.raffle) {
             setSelectedPiece({ x, y });
-            setPossibleMoves(calculatePossibleMoves(nextBoard, piece, x, y));
+            setPossibleMoves(calculatePossibleMoves(nextBoard, availableSequences, newMoveSequence, piece, x, y));
           } else {
             setSelectedPiece(null);
             setPossibleMoves([]);
