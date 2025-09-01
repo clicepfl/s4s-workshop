@@ -1,6 +1,6 @@
 //use std::process::Command;
 
-const UNIVERSAL_IMAGE: &str = "s4s-2025_runner:latest";
+const UNIVERSAL_IMAGE: &str = "s4s_runner";
 
 pub const JAVA_IMAGE: &str = UNIVERSAL_IMAGE;
 pub const PYTHON_IMAGE: &str = UNIVERSAL_IMAGE;

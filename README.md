@@ -12,6 +12,8 @@ You will need the following:
 
 ## Deploy
 
+Run `docker build -t s4s_runner ./backend/deps`
+
 Run `docker compose up`
 
 You can access the website on <http://localhost/s4s>.
