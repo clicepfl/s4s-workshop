@@ -1,4 +1,4 @@
-import {Board, MoveSequence, Piece, PieceType, Player, SingleMove} from "@/api/models";
+import {Board, MoveSequence, PieceType, Player, RichMoveSequence, SingleMove} from "@/api/models";
 
 export type MoveWithTakenAndRaffle = {
   x: number;
@@ -39,26 +39,42 @@ function moveIsEqual(lhs: SingleMove, rhs: SingleMove): boolean {
 }
 
 export function calculatePossibleMoves(
-  board: Board,
-  availableSequences: MoveSequence[],
+  availableSequences: RichMoveSequence[],
   currentSequence: MoveSequence,
-  piece: Piece,
   x: number,
-  y: number
+  y: number,
+  player: Player,
 ): MoveWithTakenAndRaffle[] {
-    // TODO: flip moves vertically if white is at the top.
-  let moveSequences2 = availableSequences.filter((sequence) =>
+  currentSequence = rotateMove(currentSequence, player);
+  if (player == Player.Black) {
+      x = 9-x;
+      y = 9-y;
+  }
+  let moveSequences = availableSequences.filter((sequence) =>
       sequence.length > currentSequence.length &&
-      sequence[currentSequence.length].from[0] == y &&
-      sequence[currentSequence.length].from[1] == x &&
-      currentSequence.every((move, index) => moveIsEqual(move, sequence[index]))
+      sequence[0][currentSequence.length].from[0] == y &&
+      sequence[0][currentSequence.length].from[1] == x &&
+      currentSequence.every((move, index) => moveIsEqual(move, sequence[0][index]))
   );
 
-  let moveSequences = moveSequences2.map((sequence) => sequence.slice(currentSequence.length));
+  let possibleMoves = moveSequences.map((sequence) => {
+      let move = sequence[0][currentSequence.length].to;
+      let taken: [number, number] | undefined = sequence[1][currentSequence.length];
+      return {
+          x: move[1],
+          y: move[0],
+          taken: taken ? {x: taken[1], y: taken[0]} : null,
+          raffle: sequence[0].length > currentSequence.length + 1
+      };
+  });
 
-  return moveSequences.map((moveSequence) => {
-      // TODO: taken is not null in general, but that requires API changes, so...
-    return { x: moveSequence[0].to[1], y: moveSequence[0].to[0], taken: null, raffle: moveSequence.length > 1 };
+  return player == Player.White ? possibleMoves : possibleMoves.map(({x, y, taken, raffle}) => {
+      return {
+          x: 9 - x,
+          y: 9 - y,
+          taken: taken ? {x: 9 - taken.x, y: 9 - taken.y} : null,
+          raffle: raffle,
+      };
   });
 }
 

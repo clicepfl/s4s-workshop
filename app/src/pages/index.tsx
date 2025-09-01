@@ -9,7 +9,7 @@ import {
     Board as BoardState,
     emptyBoard,
     initialBoards, MoveSequence,
-    Player,
+    Player, RichMoveSequence,
     SubmissionLanguage,
     TurnStatus,
 } from "../api/models";
@@ -41,7 +41,7 @@ export default function Home({ username }: { username: string }) {
   const [player, setPlayer] = useState(Player.White);
   const [currentTurn, setCurrentTurn] = useState<Player | null>(null);
   const [board, setBoard] = useState(initialBoards[player]);
-  const [availableSequences, setAvailableSequences] = useState<MoveSequence[]>([]);
+  const [availableSequences, setAvailableSequences] = useState<RichMoveSequence[]>([]);
 
   const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 
@@ -122,7 +122,7 @@ export default function Home({ username }: { username: string }) {
       setGameOngoing(false);
     } else {
       setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
-      setAvailableSequences(turnStatus.available_moves.map((x) => x[0]));
+      setAvailableSequences(turnStatus.available_moves);
       setCurrentTurn(turnStatus.game.current_player);
     }
 

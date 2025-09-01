@@ -3,17 +3,17 @@
 
 import React, { use, useEffect, useState } from "react";
 import {
-  AIError,
-  AIErrorType,
-  Board as BoardState,
-  Piece,
-  Player,
-  PieceType,
-  emptyBoard,
-  initialBoards,
-  MoveSequence,
-  SingleMove,
-  TurnStatus,
+    AIError,
+    AIErrorType,
+    Board as BoardState,
+    Piece,
+    Player,
+    PieceType,
+    emptyBoard,
+    initialBoards,
+    MoveSequence,
+    SingleMove,
+    TurnStatus, RichMoveSequence,
 } from "../api/models";
 import {
   calculateBoardAfterMove,
@@ -36,7 +36,7 @@ type BoardProps = {
     turnStatus: TurnStatus | AIError,
     initialConsoleOutput?: ConsoleMessage[]
   ) => void;
-  availableSequences: MoveSequence[]
+  availableSequences: RichMoveSequence[]
 };
 
 export default function Board({
@@ -73,7 +73,7 @@ export default function Board({
     if (clickedPiece != null && clickedPiece.player == player) {
       // select piece
       setSelectedPiece({ x, y });
-      setPossibleMoves(calculatePossibleMoves(board, availableSequences, currentMoveSequence, clickedPiece, x, y));
+      setPossibleMoves(calculatePossibleMoves(availableSequences, currentMoveSequence, x, y, player));
     } else if (selectedPiece != null) {
       const piece = board[selectedPiece.y][selectedPiece.x];
 
@@ -102,7 +102,7 @@ export default function Board({
           // check if the move sequence is finished
           if (playedMove.raffle) {
             setSelectedPiece({ x, y });
-            setPossibleMoves(calculatePossibleMoves(nextBoard, availableSequences, newMoveSequence, piece, x, y));
+            setPossibleMoves(calculatePossibleMoves(availableSequences, newMoveSequence, x, y, player));
           } else {
             setSelectedPiece(null);
             setPossibleMoves([]);
