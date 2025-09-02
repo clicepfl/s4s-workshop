@@ -9,6 +9,8 @@ pub struct Config {
     pub socks_dir: String,
     #[envconfig(from = "SOCK_VOL")]
     pub socks_vol: String,
+    #[envconfig(from = "RUNNER_IMAGE")]
+    pub runner_image: String,
 }
 
 static CONFIG: OnceLock<Config> = OnceLock::new();

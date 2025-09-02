@@ -32,6 +32,7 @@ services:
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - RUNNER_IMAGE=s4s-2024-runner:dev
     volumes:
       - ./backend:/app
       - ./data:/data

@@ -1,7 +1,4 @@
-use crate::{
-    config::config,
-    docker::{CPP_IMAGE, JAVA_IMAGE, PYTHON_IMAGE},
-};
+use crate::config::config;
 
 use super::{AppState, Error, User};
 use async_process::{Child, Command};
@@ -16,8 +13,12 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::Display, path::PathBuf, process::Stdio, str::FromStr, ffi::OsString,
-    fs::{remove_file,read_dir}
+    ffi::OsString,
+    fmt::Display,
+    fs::{read_dir, remove_file},
+    path::PathBuf,
+    process::Stdio,
+    str::FromStr,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -91,22 +92,15 @@ impl Submission {
             BASE64_STANDARD.encode(code.as_bytes())
         };
 
-        let (image, command) = match self.lang {
-            Language::Cpp => (
-                CPP_IMAGE,
-                format!(
-                    "echo {base_code} | base64 -d > /base.hpp && cp /deps/cpp/* / && g++ /main.cpp -o /a.out && /a.out"
-                ),
-            ),
+        let image = config().runner_image.as_str();
+        let command = match self.lang {
+            Language::Cpp => 
+                format!("echo {base_code} | base64 -d > /base.hpp && cp /deps/cpp/* / && g++ /main.cpp -o /a.out && /a.out"),
             // The additional directory is required because of java packages
-            Language::Java => (
-                JAVA_IMAGE,
+            Language::Java => 
                 format!("mkdir /s4s && echo {base_code} | base64 -d > /s4s/Base.java && cp /deps/java/* /s4s/ && javac s4s/*.java && java s4s.Main"),
-            ),
-            Language::Python => (
-                PYTHON_IMAGE,
+            Language::Python => 
                 format!("echo {base_code} | base64 -d > /script.py && cp /deps/python/* / && python /main.py"),
-            ),
         };
 
         let socket_arg = "SOCK=".to_owned() + &socket_adr;
@@ -171,19 +165,17 @@ pub async fn post_submission(
 ) -> Result<(), Error> {
     let lang = Language::from_str(lang.as_str())?;
 
-    let path = PathBuf::from_str(
-        format!("{}/{}.{}", config().data_dir, user.name, lang).as_str(),
-    )
-    .unwrap();
+    let path = PathBuf::from_str(format!("{}/{}.{}", config().data_dir, user.name, lang).as_str())
+        .unwrap();
 
     // This doesn't guarantee removal if other file descriptors are open
     read_dir(&config().data_dir)
         .unwrap()
         .filter(|f| {
             let f = f.as_ref().unwrap().file_name();
-            f == OsString::from(user.name.clone() + ".python") ||
-            f == OsString::from(user.name.clone() + ".cpp") ||
-            f == OsString::from(user.name.clone() + ".java")
+            f == OsString::from(user.name.clone() + ".python")
+                || f == OsString::from(user.name.clone() + ".cpp")
+                || f == OsString::from(user.name.clone() + ".java")
         })
         .filter(|f| f.as_ref().unwrap().path() != path)
         .for_each(|f| remove_file(f.unwrap().path()).expect("could not delete old submission"));
