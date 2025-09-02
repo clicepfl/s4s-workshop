@@ -19,7 +19,7 @@ RUN cargo build --release
 # Setup runtime image
 FROM alpine:latest AS runtime
 
-RUN apk add ca-certificates openssl
+RUN apk add ca-certificates openssl docker
 
 WORKDIR /app
 
