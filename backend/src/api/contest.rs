@@ -94,7 +94,6 @@ struct AiGame {
     game: Game,
     w_player: Submission,
     b_player: Submission,
-    turns: u8,
 }
 
 impl AiGame {
@@ -107,8 +106,7 @@ impl AiGame {
         let _ = self.game.play_ai(current_submission.clone()).await;
 
         // Handle draw
-        // TODO: Is this needed?
-        if self.turns >= 100 {
+        if let GameStatus::Draw = self.game.checkers.status {
             return Some(GameResult {
                 winner: self.w_player.clone(),
                 loser: self.b_player.clone(),
@@ -154,7 +152,6 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
                 game: Game { checkers: GameState::default(), human_player: Player::White },
                 w_player: c1.clone(),
                 b_player: c2.clone(),
-                turns: 0,
             });
         })
     );
