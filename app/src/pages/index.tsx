@@ -235,7 +235,7 @@ export default function Home({ username }: { username: string }) {
               <p>Bienvenue {username} !</p>
               <p>
                 Votre objectif est de programmer une <b>IA qui joue au Dames</b>
-                . A chaque tour, la fonction "findMove" que vous allez coder
+                . A chaque tour, la fonction <code>find_move</code> que vous allez coder
                 sera appelée pour déterminer le coup (ou la séquence de coups) à
                 jouer. Vous pouvez jouer manuellement contre l’IA pour la
                 tester.
@@ -256,13 +256,10 @@ export default function Home({ username }: { username: string }) {
                 de doute, fiez vous à ces règles.
               </p>
               <p>
-                La première difficulté n'est pas de trouver une stratégie de
-                jeu, mais de commencer par programmer votre IA pour qu'elle
-                renvoie toujours un <b>coup valide</b>, ce qui n'est pas facile!
-                Comme un coup n'est valide que si il n'y a pas d'autre coup
-                possible avec une plus grande priorité, il faut en théorie
-                calculer tout les coups (voire séquences de coups si il y a des
-                raffles) pour déterminer lesquels sont valides.
+                On vous fournit une <b>liste de sequences de coups valides</b>
+                en argument à votre fonction. Votre but est de choisir les
+                coups (ou enchaînements de coups) qui permettront à votre IA de
+                remporter un maximum de duels contre celles des autres joueurs.
               </p>
               <p>
                 Note : les coups a retourner sont au format row, column à chaque

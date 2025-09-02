@@ -21,13 +21,14 @@ struct Move {
 // Fonction pour trouver les coups à jouer
 std::vector<Move> findMove(const std::vector<std::vector<std::optional<Piece>>>& board, char playerColor, std::vector<std::vector<Move>> possible_moves) {
 
-    // TODO: Implémentez ici la logique pour trouver les coups à jouer et les retourner
+    // TODO: Implémentez ici la logique pour choisir les coups à jouer et les retourner
     // Les coups doivent être retournés sous forme d'une liste d'objets Move,
     // Chaque objet Move représente un coup, avec une cellule de départ et une cellule d'arrivée
     // Les classes Position(row, column) et Move(from, to) sont fournies pour vous
 
-    //std::cout << "You can print your debug values here!" << '\n' ;
+    //std::cout << "Vous pouvez afficher des valeurs de votre programme ici: " << possible_moves[0][0].from.row << '\n' ;
 
+    // possible_moves contient toutes les séquences de mouvements possibles.
     return possible_moves[0];
 }
 

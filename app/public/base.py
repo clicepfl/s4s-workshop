@@ -28,14 +28,14 @@ class Move:
 
 def find_move(board, player_color, possible_moves):
 
-    # TODO: Implémentez ici la logique pour trouver les coups à jouer et les retourner
+    # TODO: Implémentez ici la logique pour choisir les coups à jouer et les retourner
     # Les coups doivent être retournés sous forme d'une liste d'objets Move,
     # Chaque objet Move représente un coup, avec une cellule de départ et une cellule d'arrivée
     # Les classes Position(row, column) et Move(start, end) sont fournies pour vous
 
-    #print("You can print your debug values here!")
+    #print("Vous pouvez afficher des valeurs de votre programme ici:", possible_moves[0][0].start.row)
 
-    #moves = [Move(Position(6, 1), Position(5, 0))]
+    # possible_moves contient toutes les séquences de mouvements possibles.
     moves = possible_moves[0]
 
     return moves
