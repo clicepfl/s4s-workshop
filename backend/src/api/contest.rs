@@ -5,19 +5,20 @@ use crate::{
         play::Game,
         submissions::Submission,
     },
+    config::config,
 };
+use std::fs;
 use std::collections::HashMap;
-use rand::{seq::SliceRandom,rngs::SmallRng,SeedableRng};
-use rocket::{post,serde::json::Json};
-use serde::{
-    ser::{Serializer,SerializeStruct},
-    Serialize
-};
-use skillratings::{elo::{elo,EloConfig,EloRating},Outcomes};
+use std::fmt::Formatter;
+use rand::{seq::SliceRandom, rngs::SmallRng, SeedableRng};
+use rocket::{get, post, serde::json::Json};
+use serde::{ser::{Serializer, SerializeStruct}, Deserialize, Deserializer, Serialize};
+use serde::de::Visitor;
+use skillratings::{elo::{elo, EloConfig, EloRating}, Outcomes};
 
 // The original code was clearly never designed for this
 
-#[derive(Serialize,Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Scoreboard {
     scores: HashMap<String,Score>,
 }
@@ -39,6 +40,53 @@ impl Serialize for Score {
         s.serialize_field("losses", &self.losses)?;
         s.serialize_field("draws", &self.draws)?;
         s.end()
+    }
+}
+
+
+impl<'de> Deserialize<'de> for Score {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ScoreVisitor;
+
+        impl<'de> Visitor<'de> for ScoreVisitor {
+            type Value = Score;
+
+            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Score")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Score, V::Error>
+            where
+                V: serde::de::MapAccess<'de>,
+            {
+                let mut elo = None;
+                let mut wins = None;
+                let mut losses = None;
+                let mut draws = None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "elo" => elo = Some(EloRating { rating: map.next_value()? }),
+                        "wins" => wins = Some(map.next_value()?),
+                        "losses" => losses = Some(map.next_value()?),
+                        "draws" => draws = Some(map.next_value()?),
+                        _ => return Err(serde::de::Error::unknown_field(&key, &["elo", "wins", "losses", "draws"])),
+                    }
+                }
+
+                Ok(Score {
+                    elo: elo.unwrap_or_default(),
+                    wins: wins.unwrap_or_default(),
+                    losses: losses.unwrap_or_default(),
+                    draws: draws.unwrap_or_default(),
+                })
+            }
+        }
+
+        deserializer.deserialize_map(ScoreVisitor)
     }
 }
 
@@ -147,6 +195,26 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
         }
     }
     println!("Done!");
+    let scoreboard = Scoreboard{scores};
 
-    Ok(Json(Scoreboard{scores}))
+    // Save tournament results to file
+    let json = serde_json::to_string_pretty(&scoreboard).map_err(|_| Error::IO)?;
+    fs::write(format!("{}/tournament.json", config().data_dir), json).map_err(|_| Error::IO)?;
+
+
+    Ok(Json(scoreboard))
+}
+
+#[get("/tournament")]
+pub async fn get_scoreboard() -> Result<Json<Scoreboard>, Error> {
+    println!("Getting scoreboard");
+    let json = fs::read_to_string(format!("{}/tournament.json", config().data_dir))
+        .map_err(|_| Error::NotFound)?;
+    println!("{}", json);
+    let scoreboard: Scoreboard = serde_json::from_str(&json)
+        .map_err(|e| {
+            println!("{:?}", e);
+            Error::IO
+        })?;
+    Ok(Json(scoreboard))
 }

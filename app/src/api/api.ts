@@ -4,7 +4,7 @@ import {
   GetServerSidePropsResult,
 } from "next";
 import { API_URL, SESSION_COOKIE_NAME } from "./config";
-import { AIError, GameState, MoveSequence, SubmissionLanguage, TurnStatus } from "./models";
+import {AIError, GameState, MoveSequence, Scoreboard, SubmissionLanguage, TurnStatus} from "./models";
 
 export function requireSession<T extends { [key: string]: any }>(
   onSuccess: (
@@ -90,6 +90,10 @@ export async function loadSubmission(session: string): Promise<{
   code: string;
 }> {
   return await (await apiCall("submission", { session, method: "GET" })).json();
+}
+
+export async function getScoreboard(): Promise<{scores: Scoreboard}> {
+    return await (await apiCall("tournament", { method: "GET", body: null })).json();
 }
 
 export async function submitCode(

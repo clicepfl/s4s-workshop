@@ -1,0 +1,36 @@
+/* leaderboard.scss */
+
+.leaderboard-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #ffffff;
+}
+
+.leaderboard-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-header-row {
+  background-color: #ddd;
+  color: #1d2636;
+}
+
+.leaderboard-header-cell {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  font-weight: bold;
+  text-align: left;
+}
+
+.leaderboard-cell {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}

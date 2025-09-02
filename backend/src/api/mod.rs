@@ -11,6 +11,7 @@ use std::{collections::HashMap, fs::read_dir, io::Cursor, str::FromStr, sync::Ar
 use submissions::{Language, Submission};
 
 use crate::{config::config, game::Move};
+use crate::api::contest::Scoreboard;
 
 pub mod contest;
 pub mod play;
@@ -33,15 +34,15 @@ impl State {
                     let file_name = d.file_name();
                     let binding = dbg!(file_name.into_string().unwrap());
 
-                    binding.rsplit_once('.').map(|(name, lang)| {
-                        (
+                    binding.rsplit_once('.').and_then(|(name, lang)| {
+                        Some((
                             name.to_string(),
                             Submission {
                                 name: name.to_string(),
-                                lang: Language::from_str(lang).unwrap(),
+                                lang: Language::from_str(lang).ok()?,
                                 code: d.path(),
                             },
-                        )
+                        ))
                     })
                 })
                 .collect(),
@@ -62,6 +63,7 @@ pub fn routes() -> Vec<Route> {
         play::play,
         login,
         contest::run_tournament,
+        contest::get_scoreboard,
     ]
 }
 

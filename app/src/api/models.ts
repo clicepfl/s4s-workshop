@@ -40,6 +40,15 @@ export type SingleMove = { from: [number, number]; to: [number, number] };
 export type MoveSequence = { from: [number, number]; to: [number, number] }[];
 export type RichMoveSequence = [MoveSequence, [number, number][]];
 
+export type Score = {
+    elo: number;
+    wins: number;
+    losses: number;
+    draws: number;
+};
+
+export type Scoreboard = Record<string, Score>;
+
 export enum SubmissionLanguage {
   Java = "java",
   Cpp = "cpp",
