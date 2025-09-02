@@ -15,7 +15,6 @@ use std::{
     io::Read,
     time::Duration,
 };
-
 #[derive(Debug)]
 pub struct Game {
     pub checkers: GameState,
@@ -219,6 +218,7 @@ pub async fn start(
 
     println!("console output: {console}");
     let checkers = game.checkers.clone();
+    let available_moves = checkers.list_valid_moves();
 
     let mut lock = state.lock().unwrap();
     lock.games.insert(user.name, Arc::new(Mutex::new(game)));
@@ -226,6 +226,7 @@ pub async fn start(
     Ok(Json(TurnStatus {
         game: checkers,
         move_: ai_move,
+        available_moves,
         ai_output: console,
     }))
 }
@@ -255,9 +256,13 @@ pub async fn play(
     lock.play_human(moves.into_inner()).await?;
     let output = lock.play_ai(submission).await?;
 
+    let game = lock.checkers.clone();
+    let available_moves = game.list_valid_moves();
+
     Ok(Json(TurnStatus {
-        game: lock.checkers.clone(),
+        game,
         ai_output: output.console,
+        available_moves,
         move_: output.move_,
     }))
 }

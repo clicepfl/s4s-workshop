@@ -85,6 +85,7 @@ fn default_board() -> Board {
 pub struct TurnStatus {
     pub game: GameState,
     pub move_: String,
+    pub available_moves: Vec<MoveSequence>,
     pub ai_output: String,
 }
 

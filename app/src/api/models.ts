@@ -4,6 +4,7 @@ export interface GameState {
 }
 export interface TurnStatus {
   game: GameState;
+  available_moves: RichMoveSequence[];
   ai_output: string; // Everything printed by the AI on stderr since the start/last move.
 }
 
@@ -37,6 +38,7 @@ export enum PieceType {
 }
 export type SingleMove = { from: [number, number]; to: [number, number] };
 export type MoveSequence = { from: [number, number]; to: [number, number] }[];
+export type RichMoveSequence = [MoveSequence, [number, number][]];
 
 export enum SubmissionLanguage {
   Java = "java",
