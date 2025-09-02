@@ -5,6 +5,7 @@ use rocket::launch;
 use rocket::{Request, Response};
 use std::sync::Mutex;
 
+pub mod docker;
 pub mod api;
 pub mod config;
 pub mod game;
@@ -41,6 +42,8 @@ impl Fairing for CORS {
 #[launch]
 fn rocket() -> _ {
     config::config();
+
+    docker::pull_runner_image();
 
     rocket::build()
         .attach(CORS {})
