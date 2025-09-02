@@ -17,7 +17,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Setup runtime image
-FROM docker.io/mgoltzsche/podman:latest AS runtime
+FROM alpine:latest AS runtime
 
 RUN apk add ca-certificates openssl
 
