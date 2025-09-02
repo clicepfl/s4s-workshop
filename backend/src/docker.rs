@@ -6,8 +6,8 @@ pub fn pull_runner_image() {
         println!("Runner image has tag ':dev', skipping pull.");
         return;
     }
-    let image = config().runner_image.clone();
-    if let Err(err) = Command::new("docker").args(["pull", &image]).status() {
+    let image = &config().runner_image;
+    if let Err(err) = Command::new("docker").args(["pull", image]).status() {
         println!("Error while pulling {image}: {err:#?}");
     }
 }
