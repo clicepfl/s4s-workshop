@@ -26,9 +26,11 @@ def main():
     pmoves_in = input().strip()
     for moveseq in pmoves_in.split(';'):
         if moveseq:
+            curr_moveseq = []
             for move in moveseq.split(':'):
                 if move:
-                    possible_moves.append([Move(Position(int(move[0]), int(move[1])), Position(int(move[3]), int(move[4])))])
+                    curr_moveseq.append(Move(Position(int(move[0]), int(move[1])), Position(int(move[3]), int(move[4]))))
+            possible_moves.append(curr_moveseq)
 
     board = ""
     player_color = ""
