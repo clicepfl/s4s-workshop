@@ -1,6 +1,11 @@
+export interface GameStatus {
+    status: String;
+    content: String;
+}
 export interface GameState {
   board: Board;
   current_player: Player;
+  status: GameStatus;
 }
 export interface TurnStatus {
   game: GameState;

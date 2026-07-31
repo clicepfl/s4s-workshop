@@ -95,7 +95,6 @@ struct AiGame {
     w_player: Submission,
     b_player: Submission,
 }
-
 impl AiGame {
     async fn play(&mut self) -> Option<GameResult> {
         let current_player = self.game.checkers.current_player;
@@ -103,6 +102,8 @@ impl AiGame {
             if current_player == Player::White { &self.w_player }
             else { &self.b_player };
 
+        // FIXME: The white player cannot lose on error. play.rs probably needs rewriting.
+        // Or we hack this to flip the human player at every round played?
         let _ = self.game.play_ai(current_submission.clone()).await;
 
         // Handle draw

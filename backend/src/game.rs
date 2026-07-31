@@ -89,7 +89,7 @@ pub struct TurnStatus {
     pub ai_output: String,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 #[serde(tag = "status", content = "player", rename_all = "camelCase")]
 pub enum GameStatus {
     Running,
@@ -228,18 +228,17 @@ impl GameState {
                 }
             {
                 self.board[to.0][to.1].as_mut().unwrap().type_ = PieceType::King;
-                // TODO Test
             }
 
             for captured in captures {
                 self.board[captured.0][captured.1] = None;
             }
 
-            self.status = self.compute_status();
             self.current_player = match self.current_player {
                 Player::White => Player::Black,
                 Player::Black => Player::White,
             };
+            self.status = self.compute_status();
 
             Ok(())
         } else {
@@ -247,32 +246,41 @@ impl GameState {
         }
     }
 
+    // FIXME: A move can't end on the square it started on? or behind it if playing 3 moves in a square?
+    //        Prevents playing until reload, likely frontend issue
+    //        Two coming back to the same line work
+    // FIXME: The frontend message is that the AI wins every time
+    // TODO: Check if the game is actually won if the bot plays for >5s
+
+    // TODO: Disable networking in the runner
+    // TODO: Should the code being ran have access to a function which gives it the possible moves for any position? Probably
+    // TODO: Can we pull the cargo dependencies and cache them?
     fn compute_status(&self) -> GameStatus {
-        let whites = self
-            .board
-            .iter()
-            .flatten()
-            .filter(|p| p.as_ref().is_some_and(|p| p.player == Player::White))
-            .count();
+        print!("Computing status...");
+        // If status is already decided as a victory or draw, return that
+        // Looks like someone forgot how their own implementation worked :/
+        if self.status != GameStatus::Running { return self.status.clone(); }
+        println!("Was running");
 
-        let blacks = self
-            .board
-            .iter()
-            .flatten()
-            .filter(|p| p.as_ref().is_some_and(|p| p.player == Player::Black))
-            .count();
-
-        if whites == 0 {
-            if blacks == 0 {
-                GameStatus::Draw
-            } else {
-                GameStatus::Victory(Player::Black)
-            }
-        } else if blacks == 0 {
-            GameStatus::Victory(Player::White)
-        } else {
-            GameStatus::Running
+        // Does the current player have any moves available?
+        let moves = self.list_valid_moves();
+        // No -> opponent wins
+        if moves.is_empty() {
+            // This runs but doesnt stop the AI from trying to play and shows no win
+            // banner
+            println!("Player {:?} has no more moves left!", self.current_player);
+            return GameStatus::Victory(
+                if self.current_player == Player::White { Player::Black }
+                else { Player::White }
+            );
         }
+
+        // Has there been a draw condition?
+        // Same position repeated 3+ times? ( NOTE: check if games aren't prone to memory leaks!!)
+        // TODO:
+
+        GameStatus::Running
+
     }
 
     pub fn list_valid_moves(&self) -> Vec<MoveSequence> {

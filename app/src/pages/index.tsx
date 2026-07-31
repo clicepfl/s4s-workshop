@@ -85,6 +85,8 @@ export default function Home({ username }: { username: string }) {
   ) {
     let newConsoleOutput = initialConsoleOutput ?? consoleOutput;
 
+
+    // AI error behavior has priority over regular victory/loss
     if ("error" in turnStatus) {
       switch (turnStatus.error) {
         case AIErrorType.NoSubmission:
@@ -122,8 +124,21 @@ export default function Home({ username }: { username: string }) {
       setGameOngoing(false);
     } else {
       setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
-      setAvailableSequences(turnStatus.available_moves);
-      setCurrentTurn(turnStatus.game.current_player);
+
+      // Handle victory or draw
+      if (turnStatus.game.status.status == "draw") {
+        setGameOngoing(false);
+        alert("Game ended in a draw!");
+      } else if (turnStatus.game.status.status == "victory") {
+        setGameOngoing(false);
+        if (turnStatus.game.status.content == player)
+          alert("Player victory!");
+        else
+          alert("AI victory!");
+      } else { // Continue playing
+        setAvailableSequences(turnStatus.available_moves);
+        setCurrentTurn(turnStatus.game.current_player);
+      }
     }
 
     if (turnStatus.ai_output && turnStatus.ai_output.length > 0) {

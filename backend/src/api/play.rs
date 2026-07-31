@@ -157,7 +157,7 @@ impl Game {
 }
 
 fn to_move_sequence(mov: &str) -> Vec<Move> {
-    println!("converting move sequence {mov}");
+    //println!("converting move sequence {mov}");
     mov.split(";")
         .filter(|m| !m.is_empty())
         .map(|m| {
@@ -254,8 +254,17 @@ pub async fn play(
     let mut lock = game.lock().await;
 
     lock.play_human(moves.into_inner()).await?;
-    let output = lock.play_ai(submission).await?;
+    // Only play AI if the game is finished
+    let output = if lock.checkers.status == GameStatus::Running {
+        lock.play_ai(submission).await?
+    } else {
+        AiOutput{
+            move_: String::new(),
+            console: String::new(),
+        }
+    };
 
+    // WHYYYYYYYYYYYYY
     let game = lock.checkers.clone();
     let available_moves = game.list_valid_moves();
 
