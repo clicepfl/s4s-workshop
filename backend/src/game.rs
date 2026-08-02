@@ -246,10 +246,6 @@ impl GameState {
         }
     }
 
-    // FIXME: A move can't end on the square it started on? or behind it if playing 3 moves in a square?
-    //        Prevents playing until reload, likely frontend issue
-    //        Two coming back to the same line work
-    // FIXME: The frontend message is that the AI wins every time
     // TODO: Disable networking in the runner
     // TODO: Should the code being ran have access to a function which gives it the possible moves for any position? Probably
     fn compute_status(&self) -> GameStatus {
@@ -311,7 +307,14 @@ impl GameState {
                 let captured_pos = i.pos + d / 2;
 
                 if is_valid_pos(new_pos)
-                    && at(&state.board, new_pos).is_none()
+                    && (
+                        at(&state.board, new_pos).is_none() ||
+                        // Allow returning to the starting position
+                        if !i.moves.is_empty() {
+                            new_pos.x == i.moves[0].from.0 as i32 &&
+                            new_pos.y == i.moves[0].from.1 as i32
+                        } else { false }
+                    )
                     && at(&state.board, captured_pos)
                         .is_some_and(|p| p.player != state.current_player)
                 {

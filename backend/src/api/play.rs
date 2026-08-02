@@ -264,7 +264,6 @@ pub async fn play(
         }
     };
 
-    // WHYYYYYYYYYYYYY
     let game = lock.checkers.clone();
     let available_moves = game.list_valid_moves();
 

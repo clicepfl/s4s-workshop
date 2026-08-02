@@ -43,6 +43,7 @@ export enum PieceType {
 }
 export type SingleMove = { from: [number, number]; to: [number, number] };
 export type MoveSequence = { from: [number, number]; to: [number, number] }[];
+// The [number,number] seems to be the pieces beat along the way
 export type RichMoveSequence = [MoveSequence, [number, number][]];
 
 export type Score = {

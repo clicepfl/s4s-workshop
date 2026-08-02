@@ -51,7 +51,7 @@ export function calculatePossibleMoves(
       y = 9-y;
   }
   let moveSequences = availableSequences.filter((sequence) =>
-      sequence.length > currentSequence.length &&
+      sequence[0].length > currentSequence.length &&
       sequence[0][currentSequence.length].from[0] == y &&
       sequence[0][currentSequence.length].from[1] == x &&
       currentSequence.every((move, index) => moveIsEqual(move, sequence[0][index]))
