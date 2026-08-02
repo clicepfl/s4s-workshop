@@ -131,7 +131,7 @@ export default function Home({ username }: { username: string }) {
         alert("Game ended in a draw!");
       } else if (turnStatus.game.status.status == "victory") {
         setGameOngoing(false);
-        if (turnStatus.game.status.content == player)
+        if (turnStatus.game.status.player == player)
           alert("Player victory!");
         else
           alert("AI victory!");

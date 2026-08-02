@@ -101,7 +101,7 @@ export async function submitCode(
   code: string,
   session: string
 ): Promise<void> {
-  console.log(code);
+  //console.log(code);
   await apiCall(`submission?lang=${language}`, {
     session,
     body: code,

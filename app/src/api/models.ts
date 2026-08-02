@@ -1,6 +1,6 @@
 export interface GameStatus {
     status: String;
-    content: String;
+    player: String;
 }
 export interface GameState {
   board: Board;

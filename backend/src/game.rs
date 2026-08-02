@@ -250,25 +250,16 @@ impl GameState {
     //        Prevents playing until reload, likely frontend issue
     //        Two coming back to the same line work
     // FIXME: The frontend message is that the AI wins every time
-    // TODO: Check if the game is actually won if the bot plays for >5s
-
     // TODO: Disable networking in the runner
     // TODO: Should the code being ran have access to a function which gives it the possible moves for any position? Probably
-    // TODO: Can we pull the cargo dependencies and cache them?
     fn compute_status(&self) -> GameStatus {
-        print!("Computing status...");
         // If status is already decided as a victory or draw, return that
-        // Looks like someone forgot how their own implementation worked :/
         if self.status != GameStatus::Running { return self.status.clone(); }
-        println!("Was running");
 
         // Does the current player have any moves available?
         let moves = self.list_valid_moves();
         // No -> opponent wins
         if moves.is_empty() {
-            // This runs but doesnt stop the AI from trying to play and shows no win
-            // banner
-            println!("Player {:?} has no more moves left!", self.current_player);
             return GameStatus::Victory(
                 if self.current_player == Player::White { Player::Black }
                 else { Player::White }
