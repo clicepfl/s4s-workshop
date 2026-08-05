@@ -26,7 +26,7 @@ public class Main {
         // Parsage du plateau de jeu depuis la console
         for (int r = 0; r < 10; r++) {
             String line = scanner.nextLine();
-            String[] row = line.split(",");
+            String[] row = line.split(",", -1);
             Piece[] pieceRow = new Piece[row.length];
             for (int c = 0; c < row.length; c++) {
                 String pieceCode = row[c];
