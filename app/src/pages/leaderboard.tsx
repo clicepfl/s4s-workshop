@@ -2,6 +2,7 @@ import { useState } from "react";
 import {getScoreboard} from "@/api/api";
 import {Scoreboard} from "@/api/models";
 
+// FIXME:
 export default function LeaderboardPage() {
   const [scores, setScores] = useState<Scoreboard | null>(null);
     getScoreboard().then((data) => setScores(data.scores));

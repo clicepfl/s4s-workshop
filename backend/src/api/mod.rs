@@ -11,7 +11,6 @@ use std::{collections::HashMap, fs::read_dir, io::Cursor, str::FromStr, sync::Ar
 use submissions::{Language, Submission};
 
 use crate::{config::config, game::Move};
-use crate::api::contest::Scoreboard;
 
 pub mod contest;
 pub mod play;

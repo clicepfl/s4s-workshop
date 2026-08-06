@@ -102,6 +102,7 @@ pub struct GameState {
     pub board: Board,
     pub current_player: Player,
     pub status: GameStatus,
+    pub turns: u16, //TEMP
 }
 
 impl Default for GameState {
@@ -110,6 +111,7 @@ impl Default for GameState {
             board: default_board(),
             current_player: Player::White,
             status: GameStatus::Running,
+            turns: 0, //TEMP
         }
     }
 }
@@ -217,6 +219,7 @@ impl GameState {
         let move_ = available_moves.into_iter().find(|m| m.0 == seq);
 
         if let Some((moves, captures)) = move_ {
+            self.turns += 1; //TEMP
             let from = moves.first().unwrap().from;
             let to = moves.last().unwrap().to;
 
@@ -248,6 +251,8 @@ impl GameState {
 
     // TODO: Disable networking in the runner
     // TODO: Should the code being ran have access to a function which gives it the possible moves for any position? Probably
+    // TODO: We should have a second runner image
+    //       that doesnt need to get restarted every time
     fn compute_status(&self) -> GameStatus {
         // If status is already decided as a victory or draw, return that
         if self.status != GameStatus::Running { return self.status.clone(); }
@@ -265,6 +270,10 @@ impl GameState {
         // Has there been a draw condition?
         // Same position repeated 3+ times? ( NOTE: check if games aren't prone to memory leaks!!)
         // TODO:
+
+
+        // For testing, not a good solution!
+        // if self.turns > 200 { println!("Game too long!"); return GameStatus::Draw; }
 
         GameStatus::Running
 

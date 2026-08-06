@@ -18,10 +18,7 @@ use skillratings::{elo::{elo, EloConfig, EloRating}, Outcomes};
 
 // The original code was clearly never designed for this
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Scoreboard {
-    scores: HashMap<String,Score>,
-}
+type Scoreboard = HashMap<String, Score>;
 
 #[derive(Debug,Copy,Clone,Default)]
 pub struct Score {
@@ -102,21 +99,19 @@ impl AiGame {
             if current_player == Player::White { &self.w_player }
             else { &self.b_player };
 
-        // FIXME: The white player cannot lose on error. play.rs probably needs rewriting.
-        // Or we hack this to flip the human player at every round played?
         let _ = self.game.play_ai(current_submission.clone()).await;
 
         // Handle draw
-        if let GameStatus::Draw = self.game.checkers.status {
+        if self.game.checkers.status == GameStatus::Draw {
             return Some(GameResult {
                 winner: self.w_player.clone(),
                 loser: self.b_player.clone(),
-                draw:true
+                draw: true
             });
         }
 
         // Handle victory
-        if let GameStatus::Victory(winner) = self.game.checkers.status {
+        else if let GameStatus::Victory(winner) = self.game.checkers.status {
             let (winner,loser) = if winner == Player::White { (self.w_player.clone(), self.b_player.clone()) }
             else { (self.b_player.clone(), self.w_player.clone()) };
             return Some(GameResult {
@@ -125,6 +120,13 @@ impl AiGame {
                 draw: false
             });
         }
+
+        // Toggle the player each round, otherwise only blacks will play
+        self.game.human_player =
+        if self.game.human_player == Player::White
+            { Player::Black }
+        else
+            { Player::White };
 
         None
     }
@@ -141,12 +143,14 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     let mut games = vec![];
     let mut scores: HashMap<String, Score> = HashMap::new();
 
-    print!("Running tournament...");
+    println!("Running tournament...");
     // Generate games
     let lock = state.lock()?.clone();
     let contestants = lock.submissions.values();
 
-    contestants.clone().for_each(|c1|
+    print!("Generating games for: ");
+    contestants.clone().for_each(|c1| {
+        print!("{}, ", c1.name);
         contestants.clone().for_each(|c2| {
             if c1 == c2 { return; }
             games.push(AiGame {
@@ -155,18 +159,26 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
                 b_player: c2.clone(),
             });
         })
-    );
+    });
+    println!("");
 
     // Ensure fairness for calculating elo
     let mut rng = SmallRng::from_os_rng();
     games.shuffle(&mut rng);
 
+    // Prune games to O(n)
+    games.truncate(2*contestants.len());
+
     // Play games
+    let mut gamec = 0;
+    let gamet = games.len();
     for mut game in games {
         loop {
             let result = game.play().await;
 
             if let Some(i) = result {
+                gamec += 1;
+                print!("[{gamec}/{gamet}]Game finished! {} vs {}: ", &i.winner.name, &i.loser.name);
                 let winner_sb = scores.get(&i.winner.name).copied().unwrap_or_default();
                 let loser_sb = scores.get(&i.loser.name).copied().unwrap_or_default();
 
@@ -179,12 +191,15 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
 
                 // Generate and insert new scoreboard values
                 let (winner_sb,loser_sb) = if i.draw {
+                    println!("Draw!");
                     (Score { draws: winner_sb.draws + 1, elo: winner_elo, ..winner_sb},
                     Score { draws: loser_sb.draws + 1, elo: loser_elo,..loser_sb})
                 } else {
+                    println!("Victory!");
                     (Score { wins: winner_sb.wins + 1, elo: winner_elo,..winner_sb},
                     Score { losses: loser_sb.losses + 1, elo: loser_elo,..loser_sb})
                 };
+                //println!("Final board state:\n{}", game.game.checkers.to_csv_string());
 
                 scores.insert(i.winner.name, winner_sb);
                 scores.insert(i.loser.name, loser_sb);
@@ -193,14 +208,13 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
         }
     }
     println!("Done!");
-    let scoreboard = Scoreboard{scores};
 
     // Save tournament results to file
-    let json = serde_json::to_string_pretty(&scoreboard).map_err(|_| Error::IO)?;
+    let json = serde_json::to_string_pretty(&scores).map_err(|_| Error::IO)?;
     fs::write(format!("{}/tournament.json", config().data_dir), json).map_err(|_| Error::IO)?;
 
 
-    Ok(Json(scoreboard))
+    Ok(Json(scores))
 }
 
 #[get("/tournament")]
