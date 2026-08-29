@@ -198,6 +198,8 @@ main {
     justify-content: space-between;
     align-items: center;
 
+    max-width: 50%;
+
     .instructions {
       width: 100%;
       margin: 1em;
@@ -232,6 +234,9 @@ main {
         height: 100%;
 
         overflow-y: auto;
+
+        color: #fff;
+        max-width: 50%;
 
         .error {
           color: var(--clic-red);
