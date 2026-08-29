@@ -32,9 +32,6 @@ def main():
                     curr_moveseq.append(Move(Position(int(move[0]), int(move[1])), Position(int(move[3]), int(move[4]))))
             possible_moves.append(curr_moveseq)
 
-    board = ""
-    player_color = ""
-
     # Appel de la fonction findMove pour trouver les coups à jouer
     moves = find_move(board, player_color, possible_moves)
 
