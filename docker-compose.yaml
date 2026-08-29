@@ -28,7 +28,7 @@ services:
     environment:
       - DATA_DIR=/data
       - SOCK_DIR=/sockets
-      - SOCK_VOL=s4s_sockets
+      - SOCK_VOL=s4s_sockets # Dear future maintainer, double check if this shouldn't be just 'sockets', because it doesn't work outside of compose otherwise
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - DOCKER_HOST=unix:///var/run/docker.sock

@@ -23,3 +23,5 @@ Note: due to the website being http when run locally, there are some issues with
 ## Deploy
 
 The CI builds all 3 necessary images (frontend, api, runner), that are then pulled when the service is deployed on the server. Note that there is no webhook on this repo, the service must be deployed by hand once the images are built and pushed by the CI.
+
+For the 2026 edition, the backend was ran inside of docker operating off of a ramdisk on a private 32GB RAM server belonging to one of the ITs, this is really not ideal but the only way to beat the I/O demands of recompiling everything for the tournament.

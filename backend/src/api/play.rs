@@ -48,7 +48,7 @@ impl Game {
         let mut stdin = child.stdin.take().unwrap();
         let mut stdout = BufReader::new(child.stdout.take().unwrap());
         let mut stderr = BufReader::new(child.stderr.take().unwrap());
-        let listener = UnixListener::bind(socket_adr)?;
+        let listener = UnixListener::bind(socket_adr.clone())?;
 
         stdin
             .write_all(format!("{}\n", self.checkers.current_player).as_bytes())
