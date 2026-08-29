@@ -255,28 +255,32 @@ impl GameState {
     //       that doesnt need to get restarted every time
     fn compute_status(&self) -> GameStatus {
         // If status is already decided as a victory or draw, return that
-        if self.status != GameStatus::Running { return self.status.clone(); }
+        if self.status != GameStatus::Running {
+            return self.status.clone();
+        }
 
         // Does the current player have any moves available?
         let moves = self.list_valid_moves();
         // No -> opponent wins
         if moves.is_empty() {
-            return GameStatus::Victory(
-                if self.current_player == Player::White { Player::Black }
-                else { Player::White }
-            );
+            return GameStatus::Victory(if self.current_player == Player::White {
+                Player::Black
+            } else {
+                Player::White
+            });
         }
 
         // Has there been a draw condition?
         // Same position repeated 3+ times? ( NOTE: check if games aren't prone to memory leaks!!)
         // TODO:
 
-
         // For testing, not a good solution!
-        // if self.turns > 200 { println!("Game too long!"); return GameStatus::Draw; }
+        if self.turns > 200 {
+            println!("Game too long!");
+            return GameStatus::Draw;
+        }
 
         GameStatus::Running
-
     }
 
     pub fn list_valid_moves(&self) -> Vec<MoveSequence> {
@@ -316,14 +320,12 @@ impl GameState {
                 let captured_pos = i.pos + d / 2;
 
                 if is_valid_pos(new_pos)
-                    && (
-                        at(&state.board, new_pos).is_none() ||
+                    && (at(&state.board, new_pos).is_none() ||
                         // Allow returning to the starting position
                         if !i.moves.is_empty() {
                             new_pos.x == i.moves[0].from.0 as i32 &&
                             new_pos.y == i.moves[0].from.1 as i32
-                        } else { false }
-                    )
+                        } else { false })
                     && at(&state.board, captured_pos)
                         .is_some_and(|p| p.player != state.current_player)
                 {

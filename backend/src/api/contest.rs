@@ -1,21 +1,24 @@
-use super::{AppState,Error};
+use super::{AppState, Error};
 use crate::{
-    game::{GameStatus,GameState,Player},
-    api::{
-        play::Game,
-        submissions::Submission,
-    },
+    api::{play::Game, submissions::Submission},
     config::config,
+    game::{GameState, GameStatus, Player},
 };
-use std::fs;
+use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
+use rocket::{get, post, serde::json::Json};
+use serde::de::Visitor;
+use serde::{
+    ser::{SerializeStruct, Serializer},
+    Deserialize, Deserializer, Serialize,
+};
+use skillratings::{
+    elo::{elo, EloConfig, EloRating},
+    Outcomes,
+};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::sync::{Arc, Mutex, mpsc, mpsc::Sender};
-use rand::{seq::SliceRandom, rngs::SmallRng, SeedableRng};
-use rocket::{get, post, serde::json::Json};
-use serde::{ser::{Serializer, SerializeStruct}, Deserialize, Deserializer, Serialize};
-use serde::de::Visitor;
-use skillratings::{elo::{elo, EloConfig, EloRating}, Outcomes};
+use std::fs;
+use std::sync::{mpsc, mpsc::Sender, Arc, Mutex};
 
 // The original code was clearly never designed for this
 
@@ -23,7 +26,7 @@ const THREADS: usize = 14;
 
 type Scoreboard = HashMap<String, Score>;
 
-#[derive(Debug,Copy,Clone,Default)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Score {
     elo: EloRating,
     wins: u16,
@@ -33,7 +36,9 @@ pub struct Score {
 // For Elo rating
 impl Serialize for Score {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         let mut s = serializer.serialize_struct("Score", 4)?;
         s.serialize_field("elo", &self.elo.rating)?;
         s.serialize_field("wins", &self.wins)?;
@@ -42,7 +47,6 @@ impl Serialize for Score {
         s.end()
     }
 }
-
 
 impl<'de> Deserialize<'de> for Score {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -69,11 +73,20 @@ impl<'de> Deserialize<'de> for Score {
 
                 while let Some(key) = map.next_key::<String>()? {
                     match key.as_str() {
-                        "elo" => elo = Some(EloRating { rating: map.next_value()? }),
+                        "elo" => {
+                            elo = Some(EloRating {
+                                rating: map.next_value()?,
+                            })
+                        }
                         "wins" => wins = Some(map.next_value()?),
                         "losses" => losses = Some(map.next_value()?),
                         "draws" => draws = Some(map.next_value()?),
-                        _ => return Err(serde::de::Error::unknown_field(&key, &["elo", "wins", "losses", "draws"])),
+                        _ => {
+                            return Err(serde::de::Error::unknown_field(
+                                &key,
+                                &["elo", "wins", "losses", "draws"],
+                            ))
+                        }
                     }
                 }
 
@@ -98,9 +111,11 @@ struct AiGame {
 impl AiGame {
     async fn play(&mut self) -> Option<GameResult> {
         let current_player = self.game.checkers.current_player;
-        let current_submission =
-            if current_player == Player::White { &self.w_player }
-            else { &self.b_player };
+        let current_submission = if current_player == Player::White {
+            &self.w_player
+        } else {
+            &self.b_player
+        };
 
         let _ = self.game.play_ai(current_submission.clone()).await;
 
@@ -109,27 +124,29 @@ impl AiGame {
             return Some(GameResult {
                 winner: self.w_player.clone(),
                 loser: self.b_player.clone(),
-                draw: true
+                draw: true,
             });
         }
-
         // Handle victory
         else if let GameStatus::Victory(winner) = self.game.checkers.status {
-            let (winner,loser) = if winner == Player::White { (self.w_player.clone(), self.b_player.clone()) }
-            else { (self.b_player.clone(), self.w_player.clone()) };
+            let (winner, loser) = if winner == Player::White {
+                (self.w_player.clone(), self.b_player.clone())
+            } else {
+                (self.b_player.clone(), self.w_player.clone())
+            };
             return Some(GameResult {
                 winner,
                 loser,
-                draw: false
+                draw: false,
             });
         }
 
         // Toggle the player each round, otherwise only blacks will play
-        self.game.human_player =
-        if self.game.human_player == Player::White
-            { Player::Black }
-        else
-            { Player::White };
+        self.game.human_player = if self.game.human_player == Player::White {
+            Player::Black
+        } else {
+            Player::White
+        };
 
         None
     }
@@ -142,17 +159,25 @@ struct GameResult {
 }
 
 // Only allow decrementing the mutex here, increment it in the handler
-async fn run_game(mut game: AiGame, threads_tx: Sender<()>, scores: Arc<Mutex<HashMap<String, Score>>>, game_id: usize, games_total: usize) {
+async fn run_game(
+    mut game: AiGame,
+    threads_tx: Sender<()>,
+    scores: Arc<Mutex<HashMap<String, Score>>>,
+    game_id: usize,
+    games_total: usize,
+) {
     println!("Running game {game_id}");
     loop {
         let result = game.play().await;
 
         if let Some(i) = result {
             let (winner_sb, loser_sb) = {
-                let scores = scores.lock().expect("Unable to acquire lock on tournament scoreboard");
+                let scores = scores
+                    .lock()
+                    .expect("Unable to acquire lock on tournament scoreboard");
                 (
                     scores.get(&i.winner.name).copied().unwrap_or_default(),
-                    scores.get(&i.loser.name).copied().unwrap_or_default()
+                    scores.get(&i.loser.name).copied().unwrap_or_default(),
                 )
             };
 
@@ -160,27 +185,59 @@ async fn run_game(mut game: AiGame, threads_tx: Sender<()>, scores: Arc<Mutex<Ha
             let (winner_elo, loser_elo) = elo(
                 &winner_sb.elo,
                 &loser_sb.elo,
-                if i.draw { &Outcomes::DRAW } else { &Outcomes::WIN },
-                &EloConfig::default());
+                if i.draw {
+                    &Outcomes::DRAW
+                } else {
+                    &Outcomes::WIN
+                },
+                &EloConfig::default(),
+            );
 
             // Generate and insert new scoreboard values
-            let game_end_msg = format!("[{game_id}/{games_total}]Game finished! {} vs {}: ", &i.winner.name, &i.loser.name);
-            let (winner_sb,loser_sb) = if i.draw {
+            let game_end_msg = format!(
+                "[{game_id}/{games_total}]Game finished! {} vs {}: ",
+                &i.winner.name, &i.loser.name
+            );
+            let (winner_sb, loser_sb) = if i.draw {
                 println!("{} Draw!", game_end_msg);
-                (Score { draws: winner_sb.draws + 1, elo: winner_elo, ..winner_sb},
-                Score { draws: loser_sb.draws + 1, elo: loser_elo,..loser_sb})
+                (
+                    Score {
+                        draws: winner_sb.draws + 1,
+                        elo: winner_elo,
+                        ..winner_sb
+                    },
+                    Score {
+                        draws: loser_sb.draws + 1,
+                        elo: loser_elo,
+                        ..loser_sb
+                    },
+                )
             } else {
                 println!("{game_end_msg} Victory!");
-                (Score { wins: winner_sb.wins + 1, elo: winner_elo,..winner_sb},
-                Score { losses: loser_sb.losses + 1, elo: loser_elo,..loser_sb})
+                (
+                    Score {
+                        wins: winner_sb.wins + 1,
+                        elo: winner_elo,
+                        ..winner_sb
+                    },
+                    Score {
+                        losses: loser_sb.losses + 1,
+                        elo: loser_elo,
+                        ..loser_sb
+                    },
+                )
             };
             //println!("Final board state:\n{}", game.game.checkers.to_csv_string());
 
-            let mut scores = scores.lock().expect("Unable to acquire lock on tournament scoreboard");
+            let mut scores = scores
+                .lock()
+                .expect("Unable to acquire lock on tournament scoreboard");
             scores.insert(i.winner.name, winner_sb);
             scores.insert(i.loser.name, loser_sb);
 
-            threads_tx.send(()).expect("Unable to send free tournament slot signal");
+            threads_tx
+                .send(())
+                .expect("Unable to send free tournament slot signal");
 
             break;
         }
@@ -203,9 +260,14 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     contestants.clone().for_each(|c1| {
         print!("{}, ", c1.name);
         contestants.clone().for_each(|c2| {
-            if c1 == c2 { return; }
+            if c1 == c2 {
+                return;
+            }
             games.push(AiGame {
-                game: Game { checkers: GameState::default(), human_player: Player::White },
+                game: Game {
+                    checkers: GameState::default(),
+                    human_player: Player::White,
+                },
                 w_player: c1.clone(),
                 b_player: c2.clone(),
             });
@@ -218,7 +280,7 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     games.shuffle(&mut rng);
 
     // Prune games to O(n)
-    games.truncate(2*contestants.len());
+    games.truncate(2 * contestants.len());
 
     // Play games
     let mut gamec = 0;
@@ -228,18 +290,16 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
         // Check for free slots
         if gamec > THREADS {
             println!("waiting for a slot");
-            threads_rx.recv().expect("Error freeing up tournament thread slot");
+            threads_rx
+                .recv()
+                .expect("Error freeing up tournament thread slot");
             games_done += 1;
         }
 
-        // Start a new thread
+        // Start a new task on the rocket runtime
         gamec += 1;
-        let threads_tx = threads_tx.clone();
         let scores = scores.clone();
-        let threads_tx = threads_tx.clone();
-        std::thread::spawn(
-            run_game
-        );
+        rocket::tokio::spawn(run_game(game, threads_tx.clone(), scores, gamec, gamet));
     }
 
     // Wait for all games to finish
@@ -250,7 +310,12 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     println!("Finished running tournament");
 
     // Save tournament results to file
-    let json = serde_json::to_string_pretty(&*scores.lock().expect("couldn't lock scores after running all games")).map_err(|_| Error::IO)?;
+    let json = serde_json::to_string_pretty(
+        &*scores
+            .lock()
+            .expect("couldn't lock scores after running all games"),
+    )
+    .map_err(|_| Error::IO)?;
     fs::write(format!("{}/tournament.json", config().data_dir), json).map_err(|_| Error::IO)?;
 
     let scores = scores.lock().unwrap().clone();
@@ -263,10 +328,9 @@ pub async fn get_scoreboard() -> Result<Json<Scoreboard>, Error> {
     let json = fs::read_to_string(format!("{}/tournament.json", config().data_dir))
         .map_err(|_| Error::NotFound)?;
     println!("{}", json);
-    let scoreboard: Scoreboard = serde_json::from_str(&json)
-        .map_err(|e| {
-            println!("{:?}", e);
-            Error::IO
-        })?;
+    let scoreboard: Scoreboard = serde_json::from_str(&json).map_err(|e| {
+        println!("{:?}", e);
+        Error::IO
+    })?;
     Ok(Json(scoreboard))
 }

@@ -80,7 +80,7 @@ pub async fn login(name: &str, state: &AppState) -> rocket::http::Status {
     }
 }
 
-#[derive(Debug, Serialize,Clone)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum AIError {
     InvalidMove,
@@ -88,7 +88,7 @@ pub enum AIError {
     EmptySubmission,
 }
 
-#[derive(Debug, Serialize,Clone)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum Error {
     IO,

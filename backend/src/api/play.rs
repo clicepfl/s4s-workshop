@@ -1,7 +1,9 @@
 use super::{submissions::Submission, AppState, Error, User};
 use crate::{
     config::config,
-    game::{GameState, GameStatus, Move, Player, TurnStatus, sequence_to_string}};
+    game::{sequence_to_string, GameState, GameStatus, Move, Player, TurnStatus},
+};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rocket::{
     futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
     get, post,
@@ -9,10 +11,10 @@ use rocket::{
     tokio::sync::Mutex,
 };
 use std::{
-    thread,
-    sync::{Arc,mpsc},
-    os::unix::net::UnixListener,
     io::Read,
+    os::unix::net::UnixListener,
+    sync::{mpsc, Arc},
+    thread,
     time::Duration,
 };
 #[derive(Debug)]
@@ -34,14 +36,15 @@ pub struct AiOutput {
 impl Game {
     async fn get_ai_moves(&self, submission: Submission) -> Result<AiOutput, Error> {
         // We use UNIX sockets for communication with the submission scripts
-        // There is one socket per user
+        // Each run gets its own fresh socket so concurrent runs never collide
 
-        // Clean up old sockets and prepare a new one
-        let socket_adr = format!("{}/ai_{}.sock",
+        let mut rng = SmallRng::from_os_rng();
+        let socket_adr = format!(
+            "{}/ai_{}_{}.sock",
             config().socks_dir,
-            submission.name
+            submission.name,
+            rng.random::<u64>(),
         );
-        let _ = std::fs::remove_file(&socket_adr);
 
         let mut child = submission.start(socket_adr.clone()).await?;
 
@@ -61,15 +64,18 @@ impl Game {
             .map_err(Error::from)?;
 
         // Move sequences are in the format 61,50:50,41;61,52;
-        let possible_moves_string = self.checkers.list_valid_moves()
+        let possible_moves_string = self
+            .checkers
+            .list_valid_moves()
             .iter()
-            .fold(String::new(), |out, moveseq| format!("{}{};", out, sequence_to_string(moveseq)))
-             + "\n";
+            .fold(String::new(), |out, moveseq| {
+                format!("{}{};", out, sequence_to_string(moveseq))
+            })
+            + "\n";
         stdin
             .write_all(possible_moves_string.as_bytes())
             .await
             .map_err(Error::from)?;
-
 
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
@@ -77,7 +83,7 @@ impl Game {
             match listener.accept() {
                 Ok((mut socket, _)) => {
                     let _ = socket.read_to_string(&mut mov);
-                },
+                }
                 Err(e) => println!("Failed to accept socket connection: {e}"),
             }
 
@@ -88,7 +94,10 @@ impl Game {
 
         // Kill the runner if it hasn't exited yet
         let Ok(mov) = mov else {
-            print!("Program from user {} timed out, killing...", submission.name);
+            print!(
+                "Program from user {} timed out, killing...",
+                submission.name
+            );
             child.kill()?;
             println!("Killed!");
 
@@ -102,7 +111,8 @@ impl Game {
             return Err(Error::AIFailed {
                 error: super::AIError::EmptySubmission,
                 ai_output: ai_output + "\nProgram timed out after >5s without output",
-                move_: None});
+                move_: None,
+            });
         };
 
         let mut out = String::new();
@@ -117,13 +127,19 @@ impl Game {
             return Err(Error::AIFailed {
                 error: super::AIError::EmptySubmission,
                 ai_output,
-                move_: None});
+                move_: None,
+            });
         }
 
         let seq = to_move_sequence(&mov);
 
         // Just test if sequence is valid
-        if !self.checkers.list_valid_moves().into_iter().any(|m| m.0 == seq) {
+        if !self
+            .checkers
+            .list_valid_moves()
+            .into_iter()
+            .any(|m| m.0 == seq)
+        {
             return Err(Error::AIFailed {
                 error: super::AIError::InvalidMove,
                 ai_output,
@@ -131,7 +147,10 @@ impl Game {
             });
         }
 
-        Ok(AiOutput{ move_: mov, console: ai_output })
+        Ok(AiOutput {
+            move_: mov,
+            console: ai_output,
+        })
     }
     pub async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
         let out = self.get_ai_moves(submission).await;
@@ -140,10 +159,10 @@ impl Game {
             Ok(i) => {
                 let seq = to_move_sequence(&i.move_);
                 let _ = self.checkers.apply_sequence(&seq);
-            },
+            }
             // If the ai failed, make the other one automatically win
             Err(i) => {
-                if let Error::AIFailed{..} = i {
+                if let Error::AIFailed { .. } = i {
                     self.checkers.status = GameStatus::Victory(self.human_player);
                 }
             }
@@ -213,7 +232,10 @@ pub async fn start(
             .ok_or(Error::NotFound)?
             .clone();
 
-        AiOutput { move_: ai_move, console } = game.play_ai(submission).await?;
+        AiOutput {
+            move_: ai_move,
+            console,
+        } = game.play_ai(submission).await?;
     }
 
     println!("console output: {console}");
@@ -258,7 +280,7 @@ pub async fn play(
     let output = if lock.checkers.status == GameStatus::Running {
         lock.play_ai(submission).await?
     } else {
-        AiOutput{
+        AiOutput {
             move_: String::new(),
             console: String::new(),
         }

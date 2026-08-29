@@ -5,9 +5,9 @@ use rocket::launch;
 use rocket::{Request, Response};
 use std::sync::Mutex;
 
-pub mod docker;
 pub mod api;
 pub mod config;
+pub mod docker;
 pub mod game;
 
 pub struct CORS;
