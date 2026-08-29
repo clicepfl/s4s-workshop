@@ -46,12 +46,12 @@ async function apiCall(
   });
 }
 
-export async function login(username: string): Promise<boolean> {
+export async function login(username: string): Promise<number> {
   return (
     await apiCall(`login?name=${username}`, {
       method: "POST",
     })
-  ).ok;
+  ).status;
 }
 
 export async function createGame(

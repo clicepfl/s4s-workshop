@@ -11,12 +11,14 @@ export default function Login() {
 
   function attemptLogin(username: string) {
     if (username !== "") {
-      login(username).then((success) => {
-        if (success) {
+      login(username).then((code) => {
+        if (code === 200) {
           setCookie(SESSION_COOKIE_NAME, username);
           router.push("/");
-        } else {
+        } else if(code === 409) {
           alert("Username already taken");
+        } else {
+          alert(`Other error : ${code.toString()}`);
         }
       });
     }
